@@ -1373,6 +1373,62 @@ function renderPRs(){
 }
 function renderProgress(){drawChart();renderPRs();['waist','hips','chest','thigh'].forEach(f=>{if(S.measurements[f])document.getElementById('meas-'+f).value=S.measurements[f];});}
 
+// ═══════════════ DAILY REFRESH SYSTEM ═══════════════
+// Tracks the date the app last ran so we detect day crossovers from any angle
+let _lastKnownDate = new Date().toISOString().split('T')[0];
+
+function dailyReset() {
+  const today = new Date().toISOString().split('T')[0];
+  if (today === _lastKnownDate) return; // same day — nothing to do
+  _lastKnownDate = today;
+
+  // Clear all daily-scoped data
+  const prev = S.macroDate;
+  checkToday(); // resets macros, water, food log if date changed
+  save();
+
+  // Re-render everything visible
+  initDate(); // refresh verse + date display
+  renderDashboard();
+  renderSupps();
+
+  // Refresh whichever section is currently active
+  const active = document.querySelector('.section.active');
+  if (active) {
+    const id = active.id.replace('sec-', '');
+    if (id === 'fuel') renderFuel();
+    if (id === 'cardio') renderCardioLog();
+    if (id === 'workouts') renderWorkout();
+  }
+
+  showToast('🌅 New day! Daily data refreshed.');
+}
+
+// 1. Fires immediately when user brings the tab/app back into focus
+//    (e.g. phone was locked overnight, user unlocks next morning)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) dailyReset();
+});
+
+// 2. Page focus as a backup (desktop browser tab switching)
+window.addEventListener('focus', dailyReset);
+
+// 3. Passive background poll every 60 seconds — catches midnight crossover
+//    even if the app stays open in the foreground all night
+setInterval(dailyReset, 60 * 1000);
+
+// 4. Midnight precision timer — schedules a callback exactly at midnight
+function scheduleMidnightRefresh() {
+  const now = new Date();
+  const msUntilMidnight =
+    new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 5) - now;
+  setTimeout(() => {
+    dailyReset();
+    scheduleMidnightRefresh(); // re-schedule for the next midnight
+  }, msUntilMidnight);
+}
+scheduleMidnightRefresh();
+
 // ═══════════════ BOOT ═══════════════
 initDate();
 renderDashboard();

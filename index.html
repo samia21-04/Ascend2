@@ -13,7 +13,7 @@
 html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;}
 body::before{content:'';position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(139,92,246,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(139,92,246,0.04) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;}
 #app{position:relative;z-index:1;height:100%;display:flex;flex-direction:column;max-width:480px;margin:0 auto;}
-#content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:0 0 85px;scrollbar-width:none;}
+#content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:0 0 calc(85px + env(safe-area-inset-bottom));scrollbar-width:none;}
 #content::-webkit-scrollbar{display:none;}
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:11px 15px 8px;background:rgba(8,8,16,0.96);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);flex-shrink:0;}
 .topbar-logo{font-family:'Orbitron',monospace;font-weight:900;font-size:17px;background:linear-gradient(135deg,var(--purple),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:2px;}
@@ -115,12 +115,12 @@ label{font-size:11px;color:var(--muted);margin-bottom:4px;display:block;}
 .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:11px;}
 .stat-box{background:rgba(18,18,28,0.8);border:1px solid var(--border);border-radius:11px;padding:11px;}
 .stat-val{font-family:'Orbitron',monospace;font-size:20px;font-weight:700;color:var(--lavender);}
-.stat-label{font-size:10px;color:var(--muted);margin-top:2px;}
+.stat-label{font-size:10px;color:var(--muted);margin-top:2px;font-family:'Syne',sans-serif;}
 /* RINGS */
 .rings-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:10px;}
 .ring-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;}
-.ring-val{font-family:'Orbitron',monospace;font-size:10px;}
-.ring-label{font-size:9px;color:var(--muted);}
+.ring-val{font-family:'Orbitron',monospace;font-size:10px;color:var(--text);}
+.ring-label{font-size:9px;color:var(--muted);font-family:'Syne',sans-serif;}
 /* VERSE */
 .verse-card{background:linear-gradient(135deg,rgba(139,92,246,0.12),rgba(236,72,153,0.08));border:1px solid rgba(139,92,246,0.22);border-radius:13px;padding:14px;margin-bottom:11px;text-align:center;}
 .verse-text{font-size:12px;line-height:1.7;color:var(--text);font-style:italic;margin-bottom:7px;}
@@ -311,9 +311,19 @@ label{font-size:11px;color:var(--muted);margin-bottom:4px;display:block;}
         <div id="meal-list"></div>
       </div>
       <div class="card">
+        <div class="card-title">Add Custom Food</div>
+        <div class="form-group"><label>Food Name</label><input type="text" id="custom-food-name" placeholder="e.g. Peanut Butter (2 tbsp)"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
+          <div class="form-group" style="margin-bottom:0;"><label>Protein (g)</label><input type="number" id="custom-food-p" placeholder="0" min="0"></div>
+          <div class="form-group" style="margin-bottom:0;"><label>Carbs (g)</label><input type="number" id="custom-food-c" placeholder="0" min="0"></div>
+          <div class="form-group" style="margin-bottom:0;"><label>Serving (g)</label><input type="number" id="custom-food-g" placeholder="100" min="1"></div>
+        </div>
+        <button class="btn btn-primary btn-sm" style="width:100%;" onclick="addCustomFood()">+ Log This Food</button>
+      </div>
+      <div class="card">
         <div class="card-title">Today's Food Log</div>
         <div id="food-log"></div>
-        <button class="btn btn-red btn-sm" style="margin-top:8px;" onclick="clearFood()">Clear Log</button>
+        <button class="btn btn-red btn-sm" style="margin-top:8px;width:100%;" onclick="clearFood()">Clear Log</button>
       </div>
       <div style="background:linear-gradient(135deg,rgba(139,92,246,0.14),rgba(236,72,153,0.09));border:1px solid rgba(139,92,246,0.22);border-radius:12px;padding:12px;margin-bottom:11px;">
         <div style="font-size:11px;font-weight:700;color:var(--lavender);margin-bottom:5px;">🥛 Recommended Protein Powder</div>
@@ -994,14 +1004,21 @@ function renderDashboard(){
   ];
   document.getElementById('rings-row').innerHTML=ringsData.map(r=>{
     const circ=2*Math.PI*27,off=circ-Math.min(r.pct,1)*circ;
-    return `<div class="ring-wrap">
-      <svg style="transform:rotate(-90deg);" width="64" height="64" viewBox="0 0 64 64">
-        <circle cx="32" cy="32" r="27" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="7"/>
-        <circle cx="32" cy="32" r="27" fill="none" stroke="url(#g${r.label})" stroke-width="7" stroke-linecap="round"
-          stroke-dasharray="${circ.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 32 32) scale(-1,1) translate(-64,0)"/>
-        <defs><linearGradient id="g${r.label}" x1="0%" y1="0%" x2="100%"><stop offset="0%" stop-color="${r.c1}"/><stop offset="100%" stop-color="${r.c2}"/></linearGradient></defs>
-      </svg>
-      <div class="ring-val">${r.val}</div><div class="ring-label">${r.label}</div></div>`;
+    return '<div class="ring-wrap">'
+      +'<svg width="64" height="64" viewBox="0 0 64 64">'
+      +'<defs><linearGradient id="g'+r.label+'" x1="0%" y1="0%" x2="100%" y2="0%">'
+      +'<stop offset="0%" stop-color="'+r.c1+'"/><stop offset="100%" stop-color="'+r.c2+'"/>'
+      +'</linearGradient></defs>'
+      +'<circle cx="32" cy="32" r="27" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="7"/>'
+      +'<circle cx="32" cy="32" r="27" fill="none" stroke="url(#g'+r.label+')" stroke-width="7"'
+      +' stroke-linecap="round"'
+      +' stroke-dasharray="'+circ.toFixed(2)+'"'
+      +' stroke-dashoffset="'+off.toFixed(2)+'"'
+      +' transform="rotate(-90 32 32)"/>'
+      +'</svg>'
+      +'<div class="ring-val">'+r.val+'</div>'
+      +'<div class="ring-label">'+r.label+'</div>'
+      +'</div>';
   }).join('');
   document.getElementById('streak-val').textContent=S.streak;
   document.getElementById('workouts-done').textContent=S.workoutsDone;
@@ -1258,12 +1275,44 @@ function addFood(cat,idx,key,btn){
 }
 function renderFoodLog(){
   const el=document.getElementById('food-log');
-  if(!S.foodLog||!S.foodLog.length){el.innerHTML='<div style="font-size:11px;color:var(--muted);">No food logged yet — tap +Add in Meal Builder above</div>';return;}
-  el.innerHTML=S.foodLog.map(f=>`
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
-      <div style="font-size:12px;">${f.name}</div>
-      <div style="font-size:10px;color:var(--muted);">${f.p}g P · ${f.c}g C</div>
+  if(!S.foodLog||!S.foodLog.length){
+    el.innerHTML='<div style="font-size:11px;color:var(--muted);padding:8px 0;">No food logged yet — tap +Add in Meal Builder or add a custom food above</div>';
+    return;
+  }
+  el.innerHTML=S.foodLog.map((f,i)=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);gap:8px;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:500;">${f.name}</div>
+        <div style="font-size:10px;color:var(--muted);">${f.p}g protein · ${f.c}g carbs${f.g?' · '+f.g+'g serving':''}</div>
+      </div>
+      <button onclick="removeFoodItem(${i})" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.25);border-radius:6px;color:var(--red);font-size:11px;padding:3px 8px;cursor:pointer;flex-shrink:0;font-family:'Syne',sans-serif;">✕</button>
     </div>`).join('');
+}
+function removeFoodItem(i){
+  const f=S.foodLog[i];
+  S.proteinToday=Math.max(0,(S.proteinToday||0)-f.p);
+  S.carbsToday=Math.max(0,(S.carbsToday||0)-f.c);
+  S.foodLog.splice(i,1);
+  // Also un-add from meal builder if it had a key
+  save();renderMacros();renderFoodLog();renderDashboard();
+  showToast('Removed: '+f.name);
+}
+function addCustomFood(){
+  const name=document.getElementById('custom-food-name').value.trim();
+  const p=parseFloat(document.getElementById('custom-food-p').value)||0;
+  const c=parseFloat(document.getElementById('custom-food-c').value)||0;
+  const g=parseFloat(document.getElementById('custom-food-g').value)||0;
+  if(!name){showToast('Enter a food name');return;}
+  checkToday();
+  S.foodLog.push({name:'✏️ '+name,p,c,g:g||null,custom:true});
+  S.proteinToday=(S.proteinToday||0)+p;
+  S.carbsToday=(S.carbsToday||0)+c;
+  document.getElementById('custom-food-name').value='';
+  document.getElementById('custom-food-p').value='';
+  document.getElementById('custom-food-c').value='';
+  document.getElementById('custom-food-g').value='';
+  save();renderMacros();renderFoodLog();renderDashboard();
+  showToast('+'+(p?p+'g protein':'')+' logged!');
 }
 function clearFood(){S.foodLog=[];S.proteinToday=0;S.carbsToday=0;save();renderFuel();showToast('Log cleared');}
 
